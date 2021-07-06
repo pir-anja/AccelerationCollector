@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">AccelerationCollector</string>
+    <string name="header">Collect acceleration data from wearable devices:</string>
+    <string name="header_phone">Phone Accelerometer</string>
+    <string name="header_eSense">eSense Accelerometer (ADC format)</string>
+    <string name="header_eSenseAccel">eSense Accelerometer (m/s^2)</string>
+    <string name="accelData_x">x: 0.0</string>
+    <string name="accelData_y">y: 0.0</string>
+    <string name="accelData_z">z: 0.0</string>
+    <string name="left_button">Left</string>
+    <string name="right_button">Right</string>
+</resources>
