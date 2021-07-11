@@ -131,7 +131,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if (sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null) {
             // phone accelerometer exists
             accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-            sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+            int accelDelay = accelerometer.getMinDelay();
+            System.out.println("accelerometer min delay: " + accelDelay);
+            //changed SENSOR_DELAY_NORMAL to _FASTEST in order to get maximum sensor data frequency
+            sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_FASTEST);
         } else {
             System.out.println("No phone accelerometer"); // no phone accelerometer available
         }
@@ -139,7 +142,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if (sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE) != null) {
             // phone accelerometer exists
             gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-            sensorManager.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_NORMAL);
+            int gyroDelay = gyroscope.getMinDelay();
+            System.out.println("gyro min delay: " + gyroDelay);
+            sensorManager.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_FASTEST);
         } else {
             System.out.println("No phone gyroscope"); // no phone accelerometer available
         }
@@ -147,7 +152,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if (sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD) != null) {
             // phone accelerometer exists
             magnetometer = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
-            sensorManager.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_NORMAL);
+            int magneticDelay = magnetometer.getMinDelay();
+            System.out.println("magnetic min delay: " + magneticDelay);
+            sensorManager.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_FASTEST);
         } else {
             System.out.println("No phone magnetometer"); // no phone accelerometer available
         }
@@ -178,9 +185,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     //onResume() register the phone accelerometer for listening the events
     protected void onResume() {
         super.onResume();
-        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
-        sensorManager.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_NORMAL);
-        sensorManager.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_NORMAL); //comment this line if there is no magnometer on your device
+        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_FASTEST);
+        sensorManager.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_FASTEST);
+        sensorManager.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_FASTEST); //comment this line if there is no magnometer on your device
     }
 
     //onPause() unregister the phone accelerometer for stop listening the events
