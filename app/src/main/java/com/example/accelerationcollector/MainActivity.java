@@ -126,10 +126,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         mSocket.on("connect", (s) -> connectionEstablished());
 
+
         //init smartphone sensor
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         if (sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null) {
             // phone accelerometer exists
+            System.out.println("Has phone accelerometer"); // phone accelerometer available
             accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
             int accelDelay = accelerometer.getMinDelay();
             System.out.println("accelerometer min delay: " + accelDelay);
@@ -141,6 +143,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         if (sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE) != null) {
             // phone accelerometer exists
+            System.out.println("Has phone gyroscope"); // phone gyro available
             gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
             int gyroDelay = gyroscope.getMinDelay();
             System.out.println("gyro min delay: " + gyroDelay);
@@ -151,6 +154,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         if (sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD) != null) {
             // phone accelerometer exists
+            System.out.println("Has phone magnetometer"); // phone magnetometer available
             magnetometer = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
             int magneticDelay = magnetometer.getMinDelay();
             System.out.println("magnetic min delay: " + magneticDelay);
@@ -203,7 +207,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
                 accelValues = event.values;
 
-                float timestamp = event.timestamp;
+                long timestamp = event.timestamp;
                 String accelX = Float.toString(accelValues[0]);
                 String accelY = Float.toString(accelValues[1]);
                 String accelZ = Float.toString(accelValues[2]);
@@ -221,7 +225,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         if (event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
             gyroValues = event.values;
-            float timestamp = event.timestamp;
+            long timestamp = event.timestamp;
             if (recording) {
                 attemptSendPhoneGyro(timestamp + "," + gyroValues[0] + "," + gyroValues[1] + "," + gyroValues[2]);
             }
@@ -229,7 +233,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
             magneticValues = event.values;
-            float timestamp = event.timestamp;
+            long timestamp = event.timestamp;
             if (recording) {
                 attemptSendPhoneMagnetic(timestamp + "," + magneticValues[0] + "," + magneticValues[1] + "," + magneticValues[2]);
             }
@@ -319,7 +323,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     class EarableSensorListener implements ESenseSensorListener {
-        private float timestamp;
+        //private float timestamp;
 
         //Called when there is a new eSense sensor event (e.g. every time when eSense accelerometer data has changed)
         @Override
