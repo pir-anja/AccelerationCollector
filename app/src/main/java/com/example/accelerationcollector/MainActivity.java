@@ -25,6 +25,7 @@ import io.socket.emitter.Emitter;
 
 //esense library copied from https://github.com/pervasive-systems/eSense-Android-Library
 import io.esense.esenselib.*;
+import io.socket.engineio.client.transports.WebSocket;
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener/*, WearSocket.MessageListener*/ {
 
@@ -57,9 +58,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         try {
             //insert your laptop IP adress (cmd ipconfig)
-            //mSocket = IO.socket("http://100.124.115.57:3000"); //Hdk
+            //mSocket = IO.socket("http://100.124.115.57:3000"); //Hdk Laptop
             //mSocket = IO.socket("http://192.168.178.63:3000"); //Engen
-            mSocket = IO.socket("http://172.17.87.140:3000"); //Bib
+            //mSocket = IO.socket("http://172.17.87.140:3000"); //Bib
+            //mSocket = IO.socket("http://100.124.115.36:3000"); //Hdk Desktop PC
+            IO.Options options = IO.Options.builder().setTransports(new String [] {WebSocket.NAME}).build();
+            mSocket = IO.socket("http://100.124.115.36:3000", options); //Hdk Desktop PC
+            //mSocket = IO.socket("http://100.124.115.57:3000", options); //HDK Laptop
 
         } catch (URISyntaxException e) {
             System.out.println(e);
@@ -126,6 +131,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         mSocket.on("connect", (s) -> connectionEstablished());
 
+        /*mSocket.on("disconnect", (s) -> {
+            if (s.equals("io server disconnect") || s.equals("ping timeout")) {
+                mSocket.connect();
+            }
+        });*/
 
         //init smartphone sensor
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
