@@ -42,7 +42,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private Sensor accelerometer;
     private Sensor gyroscope;
     private Sensor magnetometer;
-    private TextView currentPhoneDataX, currentPhoneDataY, currentPhoneDataZ;
+    //private TextView currentPhoneDataX, currentPhoneDataY, currentPhoneDataZ;
 
     //phone data
     private float[] accelValues;
@@ -51,8 +51,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     //earable sensor
     private ESenseManager earableManager;
-    private TextView currentEarableDataX, currentEarableDataY, currentEarableDataZ; //data in ADC format as read directly from the sensor
-    private TextView currentEarableAccelDataX, currentEarableAccelDataY, currentEarableAccelDataZ; //data in m/s^2
+    //private TextView currentEarableDataX, currentEarableDataY, currentEarableDataZ; //data in ADC format as read directly from the sensor
+    //private TextView currentEarableAccelDataX, currentEarableAccelDataY, currentEarableAccelDataZ; //data in m/s^2
 
     {
 
@@ -60,10 +60,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             //insert your laptop IP adress (cmd ipconfig)
             //mSocket = IO.socket("http://100.124.115.57:3000"); //Hdk Laptop
             //mSocket = IO.socket("http://192.168.178.63:3000"); //Engen
-            //mSocket = IO.socket("http://172.17.87.140:3000"); //Bib
             //mSocket = IO.socket("http://100.124.115.36:3000"); //Hdk Desktop PC
             IO.Options options = IO.Options.builder().setTransports(new String [] {WebSocket.NAME}).build();
             mSocket = IO.socket("http://100.124.115.36:3000", options); //Hdk Desktop PC
+            //mSocket = IO.socket("http://172.17.87.140:3000", options); //Bib
             //mSocket = IO.socket("http://100.124.115.57:3000", options); //HDK Laptop
 
         } catch (URISyntaxException e) {
@@ -180,7 +180,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     private void initializeViews() {
-        currentPhoneDataX = (TextView) findViewById(R.id.text_phoneDataX);
+        /*currentPhoneDataX = (TextView) findViewById(R.id.text_phoneDataX);
         currentPhoneDataY = (TextView) findViewById(R.id.text_phoneDataY);
         currentPhoneDataZ = (TextView) findViewById(R.id.text_phoneDataZ);
 
@@ -190,7 +190,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         currentEarableAccelDataX = (TextView) findViewById(R.id.text_eSenseAccelDataX);
         currentEarableAccelDataY = (TextView) findViewById(R.id.text_eSenseAccelDataZ);
-        currentEarableAccelDataZ = (TextView) findViewById(R.id.text_eSenseAccelDataY);
+        currentEarableAccelDataZ = (TextView) findViewById(R.id.text_eSenseAccelDataY);*/
 
         leftButton = (Button) findViewById(R.id.button_left);
         rightButton = (Button) findViewById(R.id.button_right);
@@ -222,9 +222,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 String accelY = Float.toString(accelValues[1]);
                 String accelZ = Float.toString(accelValues[2]);
 
-                currentPhoneDataX.setText("x: " + accelX);
+                /*currentPhoneDataX.setText("x: " + accelX);
                 currentPhoneDataY.setText("y: " + accelY);
-                currentPhoneDataZ.setText("z: " + accelZ);
+                currentPhoneDataZ.setText("z: " + accelZ);*/
 
                 //sends only to server if accel data has changed, not when only gyro data has changed
                 if (recording) {
@@ -342,7 +342,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             short[] accelValues = evt.getAccel();
             short[] gyroValues = evt.getGyro();
             long timestamp = evt.getTimestamp();
-
+/*
             //getting new eSense data is a background task, move updating the UI onto main thread
             runOnUiThread(new Runnable() {
                 @Override
@@ -350,7 +350,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     //updates the UI:
                     setEarableDataView(accelValues);
                 }
-            });
+            });*/
 
             if (recording) {
                 //timestamp,acc_x,acc_y,acc_z,gyro_x,_gyro_y,gyro_z
@@ -360,7 +360,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
-    public void setEarableDataView(short[] values) {
+/*    public void setEarableDataView(short[] values) {
         currentEarableDataX.setText("x: " + Short.toString(values[0]));
         currentEarableDataY.setText("y: " + Short.toString(values[1]));
         currentEarableDataZ.setText("z: " + Short.toString(values[2]));
@@ -371,7 +371,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             currentEarableAccelDataY.setText("y: " + Double.toString(accelerometerDataConversion(values[1])));
             currentEarableAccelDataZ.setText("z: " + Double.toString(accelerometerDataConversion(values[2])));
         }
-    }
+    }*/
 
     /* According to eSense documentation: Float value in m/s^2 = (Acc value / Acc scale factor) * 9.80665
      * Acc value is in ADC format as read directly from the sensor
