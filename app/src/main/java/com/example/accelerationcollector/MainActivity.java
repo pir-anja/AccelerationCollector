@@ -62,7 +62,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             //mSocket = IO.socket("http://192.168.178.63:3000"); //Engen
             //mSocket = IO.socket("http://100.124.115.36:3000"); //Hdk Desktop PC
             IO.Options options = IO.Options.builder().setTransports(new String [] {WebSocket.NAME}).build();
-            mSocket = IO.socket("http://100.124.115.36:3000", options); //Hdk Desktop PC
+            mSocket = IO.socket("http://10.12.180.224:3000", options); //TECO
+            //mSocket = IO.socket("http://100.124.115.36:3000", options); //Hdk Desktop PC
             //mSocket = IO.socket("http://172.17.87.140:3000", options); //Bib
             //mSocket = IO.socket("http://100.124.115.57:3000", options); //HDK Laptop
 
