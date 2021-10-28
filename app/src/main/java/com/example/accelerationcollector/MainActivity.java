@@ -1,3 +1,7 @@
+/* Android app that collects accelerometer, gyroscope and magnetometer data from the inertial measurement unit of the phone
+ * as well as accelerometer and gyroscope data from the BLE connected left eSense headphone
+ * sends collected sensor data to server via WebSocket
+ */
 package com.example.accelerationcollector;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -12,13 +16,10 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
-
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.net.URISyntaxException;
 import java.sql.SQLOutput;
-
 import io.socket.client.IO;
 import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
@@ -26,10 +27,16 @@ import io.socket.emitter.Emitter;
 //esense library copied from https://github.com/pervasive-systems/eSense-Android-Library
 import io.esense.esenselib.*;
 import io.socket.engineio.client.transports.WebSocket;
+import io.esense.esenselib.ESenseConfig;
+import io.esense.esenselib.ESenseConnectionListener;
+import io.esense.esenselib.ESenseEvent;
+import io.esense.esenselib.ESenseEventListener;
+import io.esense.esenselib.ESenseManager;
+import io.esense.esenselib.ESenseSensorListener;
 
-public class MainActivity extends AppCompatActivity implements SensorEventListener/*, WearSocket.MessageListener*/ {
+public class MainActivity extends AppCompatActivity implements SensorEventListener {/*, WearSocket.MessageListener*/
 
-    private double range = 0; //ESenseConfig.AccRange
+    private double range = 0; // ESenseConfig.AccRange
     private boolean recording = false;
     private bodySide side = bodySide.NON_DEFINED;
     private String sideString = "";
@@ -37,12 +44,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private Button leftButton;
     private Button rightButton;
 
-    //smartphone sensor
+    // smartphone sensor
     private SensorManager sensorManager;
     private Sensor accelerometer;
     private Sensor gyroscope;
     private Sensor magnetometer;
-    //private TextView currentPhoneDataX, currentPhoneDataY, currentPhoneDataZ;
+    private TextView currentPhoneDataX, currentPhoneDataY, currentPhoneDataZ;
 
     //phone data
     private float[] accelValues;
@@ -51,22 +58,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     //earable sensor
     private ESenseManager earableManager;
-    //private TextView currentEarableDataX, currentEarableDataY, currentEarableDataZ; //data in ADC format as read directly from the sensor
-    //private TextView currentEarableAccelDataX, currentEarableAccelDataY, currentEarableAccelDataZ; //data in m/s^2
+    private TextView currentEarableDataX, currentEarableDataY, currentEarableDataZ; // data in ADC format as read directly from the sensor
+    private TextView currentEarableAccelDataX, currentEarableAccelDataY, currentEarableAccelDataZ; // data in m/s^2
 
     {
-
         try {
-            //insert your laptop IP adress (cmd ipconfig)
-            //mSocket = IO.socket("http://100.124.115.57:3000"); //Hdk Laptop
-            //mSocket = IO.socket("http://192.168.178.63:3000"); //Engen
-            //mSocket = IO.socket("http://100.124.115.36:3000"); //Hdk Desktop PC
-            IO.Options options = IO.Options.builder().setTransports(new String [] {WebSocket.NAME}).build();
-            mSocket = IO.socket("http://10.12.180.224:3000", options); //TECO
-            //mSocket = IO.socket("http://100.124.115.36:3000", options); //Hdk Desktop PC
-            //mSocket = IO.socket("http://172.17.87.140:3000", options); //Bib
-            //mSocket = IO.socket("http://100.124.115.57:3000", options); //HDK Laptop
-
+            // IP address of server must be configured (cmd ipconfig)
+            IO.Options options = IO.Options.builder().setTransports(new String[]{WebSocket.NAME}).build();
+            mSocket = IO.socket("http://10.12.180.224:3000", options); // TECO lab
         } catch (URISyntaxException e) {
             System.out.println(e);
         }
@@ -76,14 +75,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
         initializeViews();
         initConnections();
-
-       leftButton.setOnClickListener(new View.OnClickListener() {
+        //choose body side the phone is worn on by clicking on the corresponding button
+        leftButton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View view)
-            {
+            public void onClick(View view) {
                 side = bodySide.LEFT;
                 sideString = side.toString().toLowerCase();
                 leftButton.setEnabled(false);
@@ -98,8 +95,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         });
         rightButton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View view)
-            {
+            public void onClick(View view) {
                 side = bodySide.RIGHT;
                 sideString = side.toString().toLowerCase();
                 leftButton.setEnabled(false);
@@ -129,20 +125,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             recording = false;
         });
         mSocket.connect();
-
         mSocket.on("connect", (s) -> connectionEstablished());
 
-        /*mSocket.on("disconnect", (s) -> {
-            if (s.equals("io server disconnect") || s.equals("ping timeout")) {
-                mSocket.connect();
-            }
-        });*/
 
-        //init smartphone sensor
+        // init smartphone sensors
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        // accelerometer
         if (sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null) {
             // phone accelerometer exists
-            System.out.println("Has phone accelerometer"); // phone accelerometer available
+            System.out.println("Has phone accelerometer");
             accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
             int accelDelay = accelerometer.getMinDelay();
             System.out.println("accelerometer min delay: " + accelDelay);
@@ -151,27 +142,27 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         } else {
             System.out.println("No phone accelerometer"); // no phone accelerometer available
         }
-
+        // gyroscope
         if (sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE) != null) {
-            // phone accelerometer exists
-            System.out.println("Has phone gyroscope"); // phone gyro available
+            // phone gyro exists
+            System.out.println("Has phone gyroscope");
             gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
             int gyroDelay = gyroscope.getMinDelay();
             System.out.println("gyro min delay: " + gyroDelay);
             sensorManager.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_FASTEST);
         } else {
-            System.out.println("No phone gyroscope"); // no phone accelerometer available
+            System.out.println("No phone gyroscope"); // no phone gyro available
         }
-
+        // magnetometer
         if (sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD) != null) {
-            // phone accelerometer exists
-            System.out.println("Has phone magnetometer"); // phone magnetometer available
+            // phone magnetometer exists
+            System.out.println("Has phone magnetometer");
             magnetometer = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
             int magneticDelay = magnetometer.getMinDelay();
             System.out.println("magnetic min delay: " + magneticDelay);
             sensorManager.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_FASTEST);
         } else {
-            System.out.println("No phone magnetometer"); // no phone accelerometer available
+            System.out.println("No phone magnetometer"); // no phone magnetometer available
         }
     }
 
@@ -181,7 +172,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     private void initializeViews() {
-        /*currentPhoneDataX = (TextView) findViewById(R.id.text_phoneDataX);
+        currentPhoneDataX = (TextView) findViewById(R.id.text_phoneDataX);
         currentPhoneDataY = (TextView) findViewById(R.id.text_phoneDataY);
         currentPhoneDataZ = (TextView) findViewById(R.id.text_phoneDataZ);
 
@@ -191,7 +182,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         currentEarableAccelDataX = (TextView) findViewById(R.id.text_eSenseAccelDataX);
         currentEarableAccelDataY = (TextView) findViewById(R.id.text_eSenseAccelDataZ);
-        currentEarableAccelDataZ = (TextView) findViewById(R.id.text_eSenseAccelDataY);*/
+        currentEarableAccelDataZ = (TextView) findViewById(R.id.text_eSenseAccelDataY);
 
         leftButton = (Button) findViewById(R.id.button_left);
         rightButton = (Button) findViewById(R.id.button_right);
@@ -202,38 +193,40 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         super.onResume();
         sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_FASTEST);
         sensorManager.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_FASTEST);
-        sensorManager.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_FASTEST); //comment this line if there is no magnometer on your device
+        sensorManager.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_FASTEST); //comment out this line if there is no magnometer on your device
     }
 
-    //onPause() unregister the phone accelerometer for stop listening the events
+    // onPause() unregister the phone accelerometer for stop listening the events
     protected void onPause() {
         super.onPause();
         sensorManager.unregisterListener(this);
     }
 
-    //Called when there is a new phone sensor event (e.g. every time when phone accelerometer data has changed)
+    // Called when there is a new phone sensor event (e.g. every time when phone accelerometer data has changed)
     @Override
     public void onSensorChanged(SensorEvent event) {
+        // accelerometer
+        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+            accelValues = event.values;
 
-            if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-                accelValues = event.values;
+            long timestamp = event.timestamp;
+            // update GUI with current sensor values
+            String accelX = Float.toString(accelValues[0]);
+            String accelY = Float.toString(accelValues[1]);
+            String accelZ = Float.toString(accelValues[2]);
 
-                long timestamp = event.timestamp;
-                String accelX = Float.toString(accelValues[0]);
-                String accelY = Float.toString(accelValues[1]);
-                String accelZ = Float.toString(accelValues[2]);
-
-                /*currentPhoneDataX.setText("x: " + accelX);
+                currentPhoneDataX.setText("x: " + accelX);
                 currentPhoneDataY.setText("y: " + accelY);
-                currentPhoneDataZ.setText("z: " + accelZ);*/
+                currentPhoneDataZ.setText("z: " + accelZ);
 
-                //sends only to server if accel data has changed, not when only gyro data has changed
-                if (recording) {
-                    //timestamp,acc_x,acc_y,acc_z
-                    attemptSendPhoneAccel(timestamp + "," + accelX + "," + accelY + "," + accelZ);
-                }
+            // sends only to server if accel data has changed, not when only gyro data has changed
+            if (recording) {
+                //timestamp,acc_x,acc_y,acc_z
+                attemptSendPhoneAccel(timestamp + "," + accelX + "," + accelY + "," + accelZ);
             }
+        }
 
+        // gyroscope
         if (event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
             gyroValues = event.values;
             long timestamp = event.timestamp;
@@ -242,6 +235,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
         }
 
+        //magnetometer
         if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
             magneticValues = event.values;
             long timestamp = event.timestamp;
@@ -252,11 +246,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     }
 
-    //Called when the accuracy of the registered phone sensor has changed.
+    // Called when the accuracy of the registered phone sensor has changed.
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
     }
 
+    // set connection to eSense headphone
     class EarableConnectionListener implements ESenseConnectionListener {
         private String deviceStatus = "";
 
@@ -276,20 +271,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         public void onConnected(ESenseManager manager) {
             deviceStatus = "device connected";
             System.out.println(deviceStatus);
-            //you can only listen to sensor data after a device has been connected
+            // you can only listen to sensor data after a device has been connected
             EarableSensorListener eSenseSensorListener = new EarableSensorListener();
-            //start listening to earable sensor data
+            // start listening to earable sensor data
             earableManager.registerSensorListener(eSenseSensorListener, 100);
             mSocket.emit("esense side connect", sideString);
 
-            //set current eSense configuration so that acceleration scale factor (called 'range') should be 8192 LSB/g (default value)
+            // set current eSense configuration so that acceleration scale factor (called 'range') should be 8192 LSB/g (default value)
             EarableEventListener eSenseEventListener = new EarableEventListener();
             earableManager.registerEventListener(eSenseEventListener);
             ESenseConfig config = new ESenseConfig();
             earableManager.setSensorConfig(config);
             range = config.getAccSensitivityFactor();
             System.out.println("range: " + range);
-            //earableManager.getSensorConfig();
         }
 
         @Override
@@ -322,7 +316,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         @Override
         public void onSensorConfigRead(ESenseConfig config) {
-            range  = config.getAccSensitivityFactor();
+            // accelerometer scale factor, needed for conversion of acceleration data in raw ADC format to m/s^2
+            range = config.getAccSensitivityFactor();
             System.out.println("range: " + range);
 
         }
@@ -333,6 +328,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
+    // collect eSense sensor data
     class EarableSensorListener implements ESenseSensorListener {
         //private float timestamp;
 
@@ -343,7 +339,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             short[] accelValues = evt.getAccel();
             short[] gyroValues = evt.getGyro();
             long timestamp = evt.getTimestamp();
-/*
+
             //getting new eSense data is a background task, move updating the UI onto main thread
             runOnUiThread(new Runnable() {
                 @Override
@@ -351,7 +347,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     //updates the UI:
                     setEarableDataView(accelValues);
                 }
-            });*/
+            });
 
             if (recording) {
                 //timestamp,acc_x,acc_y,acc_z,gyro_x,_gyro_y,gyro_z
@@ -361,7 +357,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
-/*    public void setEarableDataView(short[] values) {
+    // updates GUI part that display current eSense sensor data
+    public void setEarableDataView(short[] values) {
         currentEarableDataX.setText("x: " + Short.toString(values[0]));
         currentEarableDataY.setText("y: " + Short.toString(values[1]));
         currentEarableDataZ.setText("z: " + Short.toString(values[2]));
@@ -372,19 +369,20 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             currentEarableAccelDataY.setText("y: " + Double.toString(accelerometerDataConversion(values[1])));
             currentEarableAccelDataZ.setText("z: " + Double.toString(accelerometerDataConversion(values[2])));
         }
-    }*/
+    }
 
-    /* According to eSense documentation: Float value in m/s^2 = (Acc value / Acc scale factor) * 9.80665
+    /* Converts raw eSense accelerometer data in ADC format to m/s^2
+     * According to eSense documentation: Float value in m/s^2 = (Acc value / Acc scale factor) * 9.80665
      * Acc value is in ADC format as read directly from the sensor
      * Acc scale factor should be 8192 LSB/g by default
      * (Referred to https://www.esense.io/share/eSense-BLE-Specification.pdf)
      */
     public double accelerometerDataConversion(short accValue) {
-        return (accValue / range ) * 9.80665;
+        return (accValue / range) * 9.80665;
     }
 
 
-    //send acceleration data to socket.IO server
+    // send sensor data to socket.IO server
     private void attemptSendPhoneAccel(String msg) {
         mSocket.emit("phone accel data " + sideString, msg);
     }
@@ -405,7 +403,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     //send eSense accel data in m/s^2 instead of ADC format
     private void attemptSendESenseConverted(String msg) {
         mSocket.emit("esense converted data " + sideString, msg);
-
     }
 
     //the socket.IO server can send events too
