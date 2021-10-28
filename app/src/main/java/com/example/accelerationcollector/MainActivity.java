@@ -435,7 +435,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         mSocket.disconnect();
         mSocket.off("new message", onNewMessage);
     }
-
 }
 
 
